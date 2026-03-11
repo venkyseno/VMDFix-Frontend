@@ -1,0 +1,226 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&display=swap');
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --primary: #16213e;
+  --accent: #1a7a4a;
+  --accent-light: #22a05e;
+  --surface: #ffffff;
+  --surface-2: #f5f5f5;
+  --text-1: #111827;
+  --text-2: #374151;
+  --text-3: #9ca3af;
+  --success: #1a7a4a;
+  --warning: #d97706;
+  --danger: #dc2626;
+}
+
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0; min-height: 100vh; color: var(--text-1);
+  font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  background: #f5f5f5; -webkit-font-smoothing: antialiased;
+}
+#root { min-height: 100vh; }
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #cbd0dc; border-radius: 4px; }
+
+@keyframes slideUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes fadeIn  { from { opacity: 0; } to { opacity: 1; } }
+@keyframes scaleIn { from { opacity: 0; transform: scale(0.97); } to { opacity: 1; transform: scale(1); } }
+@keyframes waveBar { 0%,100% { transform: scaleY(0.3); } 50% { transform: scaleY(1.0); } }
+@keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+
+.animate-slide-up { animation: slideUp 0.28s ease-out both; }
+.animate-fade-in  { animation: fadeIn  0.22s ease-out both; }
+.animate-scale-in { animation: scaleIn 0.18s ease-out both; }
+.animate-wave-bar { animation: waveBar 0.7s ease-in-out infinite; }
+
+.stagger-children > * { animation: slideUp 0.3s ease-out both; }
+.stagger-children > *:nth-child(1) { animation-delay:   0ms; }
+.stagger-children > *:nth-child(2) { animation-delay:  50ms; }
+.stagger-children > *:nth-child(3) { animation-delay: 100ms; }
+.stagger-children > *:nth-child(4) { animation-delay: 150ms; }
+.stagger-children > *:nth-child(5) { animation-delay: 200ms; }
+.stagger-children > *:nth-child(6) { animation-delay: 250ms; }
+
+.glass {
+  background: rgba(255,255,255,0.95);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+.gradient-primary { background: linear-gradient(135deg, #16213e, #1a7a4a); }
+
+input:focus, select:focus, textarea:focus {
+  outline: none;
+  border-color: #1a7a4a !important;
+  box-shadow: 0 0 0 3px rgba(26,122,74,0.12) !important;
+}
+input[type="file"] { font-size: 13px; color: var(--text-2); }
+input[type="file"]::file-selector-button {
+  font-family: inherit; font-size: 12px; font-weight: 600;
+  color: var(--accent); background: #e8f5ee; border: none;
+  border-radius: 6px; padding: 5px 10px; margin-right: 8px;
+  cursor: pointer; transition: background 0.15s;
+}
+input[type="file"]::file-selector-button:hover { background: #d0ead9; }
+.primary-address-card {
+  background: linear-gradient(135deg, #e8f5ee 0%, #f0f9f4 100%);
+  border-color: #a7d9b8 !important;
+}
+
+/* ──────────────────────────────────────────────────────────────────
+   HOME PAGE — Full-bleed sections, no nested cards
+   Inspired by Urban Company / Home Triangle pattern
+──────────────────────────────────────────────────────────────────── */
+.home-section {
+  background: #ffffff;
+  margin-bottom: 8px;
+}
+
+/* 3-column service card grid — cards touch near edge */
+.service-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  padding: 0 10px 14px;
+}
+
+/* Individual service card */
+.service-card {
+  cursor: pointer;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #fff;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.10), 0 0 0 1px rgba(0,0,0,0.04);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  will-change: transform;
+  -webkit-transform: translateZ(0);
+}
+.service-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 28px rgba(0,0,0,0.16);
+}
+.service-card:active {
+  transform: scale(0.97);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+}
+
+/* Square image wrapper */
+.service-card-img-wrap {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  overflow: hidden;
+}
+.service-card-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.5s ease;
+  will-change: transform;
+}
+.service-card:hover .service-card-img  { transform: scale(1.08); }
+.service-card:active .service-card-img { transform: scale(1.04); }
+
+/* Book Now button inside card */
+.service-card-book-btn {
+  display: block; width: 100%; padding: 5px 0;
+  border-radius: 7px; border: none;
+  background: linear-gradient(135deg, #16213e 0%, #1a7a4a 100%);
+  color: #fff; font-size: 10px; font-weight: 700;
+  text-align: center; cursor: pointer; margin-top: 5px;
+  font-family: inherit; transition: opacity 0.15s;
+}
+.service-card-book-btn:hover { opacity: 0.88; }
+
+/* Section header — left accent stripe */
+.sec-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 14px 10px;
+}
+.sec-head-left { display: flex; align-items: flex-start; gap: 8px; }
+.sec-head-stripe {
+  width: 4px; height: 100%; min-height: 36px;
+  border-radius: 4px; flex-shrink: 0; margin-top: 1px;
+}
+.sec-head-title {
+  font-size: 16px; font-weight: 800; color: #111827;
+  letter-spacing: -0.02em; margin: 0;
+}
+.sec-head-sub {
+  font-size: 11px; color: #9ca3af; margin-top: 2px; display: block;
+}
+.sec-count {
+  font-size: 11px; font-weight: 700;
+  padding: 3px 10px; border-radius: 20px;
+  white-space: nowrap; flex-shrink: 0;
+}
+
+/* ──────────────────────────────────────────────────────────────────
+   MARKETPLACE CARD — horizontal rows
+──────────────────────────────────────────────────────────────────── */
+.mkt-card {
+  position: relative; background: #fff;
+  border-radius: 12px; overflow: hidden;
+  border: 1px solid #eeeeee;
+  box-shadow: 0 1px 6px rgba(0,0,0,0.07);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  will-change: transform;
+}
+.mkt-card:hover  { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(0,0,0,0.12); }
+.mkt-card:active { transform: scale(0.99); }
+.mkt-card::after {
+  content: ''; position: absolute; bottom: 0; left: 0;
+  height: 3px; width: 0;
+  background: linear-gradient(90deg, #16213e, #1a7a4a);
+  border-radius: 0 0 12px 12px;
+  transition: width 0.4s ease;
+}
+.mkt-card:hover::after { width: 100%; }
+.mkt-img { transition: transform 0.5s ease; will-change: transform; }
+.mkt-card:hover .mkt-img  { transform: scale(1.06); }
+.mkt-card:active .mkt-img { transform: scale(1.03); }
+
+/* ──────────────────────────────────────────────────────────────────
+   App icon — rounded square (NOT oval)
+──────────────────────────────────────────────────────────────────── */
+.app-logo-icon {
+  width: 36px; height: 36px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #16213e 0%, #1a7a4a 100%);
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+  box-shadow: 0 2px 8px rgba(26,122,74,0.30);
+}
+
+/* ──────────────────────────────────────────────────────────────────
+   Skeleton loading shimmer
+──────────────────────────────────────────────────────────────────── */
+.skeleton {
+  background: linear-gradient(90deg, #f0f0f0 25%, #e8e8e8 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.2s infinite;
+  border-radius: 10px;
+}
+
+/* ──────────────────────────────────────────────────────────────────
+   Admin nav labels always visible
+──────────────────────────────────────────────────────────────────── */
+.admin-nav-label {
+  display: inline !important; opacity: 1 !important;
+  visibility: visible !important; overflow: visible !important;
+  white-space: nowrap !important; max-width: none !important;
+}
+
+.btn-book-now {
+  background: linear-gradient(135deg, #16213e 0%, #1a7a4a 100%);
+}

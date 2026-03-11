@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">LocalService</string>
+    <string name="title_activity_main">LocalService</string>
+    <string name="package_name">com.venkatesh.localservice</string>
+    <string name="custom_url_scheme">com.venkatesh.localservice</string>
+</resources>

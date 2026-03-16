@@ -259,89 +259,266 @@ function TrustBadge({ icon, title, subtitle }) {
   );
 }
 
-/* ── Main Component ────────────────────────────────────────────────────────── */
 /* ── PWA Install Hook ──────────────────────────────────────────────────────── */
 function usePWAInstall() {
   const [deferredPrompt, setDeferredPrompt] = useState(null);
-  const [canInstall, setCanInstall] = useState(false);
+  const [nativeReady, setNativeReady] = useState(false);
+  const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+  const isInstalled = window.matchMedia("(display-mode: standalone)").matches
+    || window.navigator.standalone === true;
+
   useEffect(() => {
-    const handler = (e) => { e.preventDefault(); setDeferredPrompt(e); setCanInstall(true); };
+    const handler = (e) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+      setNativeReady(true);
+    };
     window.addEventListener("beforeinstallprompt", handler);
     return () => window.removeEventListener("beforeinstallprompt", handler);
   }, []);
+
   const install = async () => {
-    if (!deferredPrompt) return false;
-    deferredPrompt.prompt();
-    const { outcome } = await deferredPrompt.userChoice;
-    setDeferredPrompt(null);
-    setCanInstall(false);
-    return outcome === "accepted";
+    if (deferredPrompt) {
+      deferredPrompt.prompt();
+      const { outcome } = await deferredPrompt.userChoice;
+      setDeferredPrompt(null);
+      setNativeReady(false);
+      return outcome === "accepted" ? "installed" : "dismissed";
+    }
+    return isIOS ? "ios" : "manual";
   };
-  return { canInstall, install };
+
+  return { nativeReady, isIOS, isInstalled, install };
 }
 
-/* ── PWA Install Banner (inline hero card) ─────────────────────────────────── */
-function InstallBanner({ t }) {
-  const { canInstall, install } = usePWAInstall();
-  const [dismissed, setDismissed] = useState(() => !!localStorage.getItem("pwa_dismissed"));
-  if (!canInstall || dismissed) return null;
-  const dismiss = () => { setDismissed(true); localStorage.setItem("pwa_dismissed", "1"); };
+/* ── iOS Instructions Modal ────────────────────────────────────────────────── */
+function IOSModal({ onClose }) {
   return (
-    <div className="relative overflow-hidden mx-2.5 mb-2 rounded-2xl shadow-md"
-         style={{ background: "linear-gradient(135deg,#1a7a4a 0%,#16213e 100%)" }}>
-      <div className="absolute -top-6 -right-6 w-24 h-24 rounded-full bg-white/10 pointer-events-none" />
-      <div className="flex items-center gap-3 p-3.5 pr-10">
-        <img src="/icon.jpeg" alt="VMDFix" className="w-12 h-12 rounded-xl flex-shrink-0 shadow-md object-cover" />
-        <div className="flex-1 min-w-0">
-          <p className="text-white font-extrabold text-sm leading-tight">{t("pwa_install") || "Install VMDFix App"}</p>
-          <p className="text-white/70 text-[10px] mt-0.5 line-clamp-1">{t("pwa_install_desc") || "Add to home screen for quick access"}</p>
-          <button
-            onClick={install}
-            className="mt-2 bg-white text-[11px] font-extrabold px-3 py-1.5 rounded-lg hover:shadow-lg active:scale-95 transition-all"
-            style={{ color: "#1a7a4a" }}>
-            <Smartphone className="inline w-3 h-3 mr-1 -mt-0.5" />
-            {t("pwa_install_btn") || "Add to Home Screen"}
-          </button>
+    <div className="fixed inset-0 z-50 flex items-end justify-center p-4"
+         style={{ background: "rgba(0,0,0,0.6)" }} onClick={onClose}>
+      <div className="w-full max-w-sm rounded-2xl bg-white p-5 shadow-2xl"
+           onClick={e => e.stopPropagation()}>
+        <div className="flex items-center justify-between mb-4">
+          <p className="font-extrabold text-gray-900 text-base">Install VMDFix</p>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-700"><X size={18}/></button>
         </div>
-        <button onClick={dismiss} className="absolute top-2 right-2 text-white/50 hover:text-white p-1">
-          <X size={14} />
+        <div className="space-y-3">
+          {[
+            { step: "1", text: "Tap the Share button ⬆️ at the bottom", icon: "⬆️" },
+            { step: "2", text: 'Scroll down and tap "Add to Home Screen"', icon: "📱" },
+            { step: "3", text: 'Tap "Add" to confirm', icon: "✅" },
+          ].map(({ step, text, icon }) => (
+            <div key={step} className="flex items-center gap-3 rounded-xl bg-gray-50 px-4 py-3">
+              <span className="text-xl">{icon}</span>
+              <div>
+                <p className="text-[10px] font-bold text-gray-400 uppercase">Step {step}</p>
+                <p className="text-sm font-semibold text-gray-800">{text}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+        <button onClick={onClose}
+          className="mt-4 w-full rounded-xl py-3 font-extrabold text-white text-sm"
+          style={{ background: "linear-gradient(135deg,#1a7a4a,#16213e)" }}>
+          Got it!
         </button>
       </div>
     </div>
   );
 }
 
-/* ── PWA Install CTA (desktop bottom strip) ────────────────────────────────── */
-function InstallCTADesktop({ t }) {
-  const { canInstall, install } = usePWAInstall();
-  const [dismissed, setDismissed] = useState(() => !!localStorage.getItem("pwa_dismissed"));
-  if (!canInstall || dismissed) return null;
-  const dismiss = () => { setDismissed(true); localStorage.setItem("pwa_dismissed", "1"); };
+/* ── Play Store–style install badge ────────────────────────────────────────── */
+function PlayStoreBadge({ onClick, label = "Install App" }) {
   return (
-    <section className="hidden lg:block" style={{ margin: "0 10px 16px" }}>
-      <div className="flex items-center justify-between gap-4 rounded-2xl border border-green-100 bg-green-50 px-6 py-4 shadow-sm">
-        <div className="flex items-center gap-4">
-          <img src="/icon.jpeg" alt="VMDFix" className="w-14 h-14 rounded-2xl shadow object-cover" />
-          <div>
-            <p className="font-extrabold text-gray-900 text-base">{t("pwa_install") || "Install VMDFix App"}</p>
-            <p className="text-gray-500 text-sm">{t("pwa_install_desc") || "Add to your desktop or home screen for quick access"}</p>
+    <button onClick={onClick}
+      className="flex items-center gap-2 rounded-xl px-3 py-2 active:scale-95 transition-all shadow-md hover:opacity-90"
+      style={{ background: "#000", minWidth: 145 }}>
+      <svg viewBox="0 0 24 24" width="20" height="20" fill="none">
+        <path d="M3.18 23.76c.31.17.68.19 1.02.05l11.72-6.77-2.53-2.53L3.18 23.76z" fill="#EA4335"/>
+        <path d="M20.82 10.25 17.5 8.36l-2.85 2.85 2.85 2.85 3.35-1.93a1.2 1.2 0 0 0 0-2.08z" fill="#FBBC04"/>
+        <path d="M3.18.24A1.2 1.2 0 0 0 2.5 1.3v21.4c0 .45.25.85.68 1.06l11.2-11.2L3.18.24z" fill="#4285F4"/>
+        <path d="M4.2.19l11.72 6.77-2.53 2.53L3.18.24A1.2 1.2 0 0 1 4.2.19z" fill="#34A853"/>
+      </svg>
+      <div className="text-left leading-none">
+        <p className="text-white/60 text-[8px] font-medium tracking-wide uppercase">Get it on</p>
+        <p className="text-white font-extrabold text-[13px] tracking-tight">{label}</p>
+      </div>
+    </button>
+  );
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   PWA Install Banner — ALWAYS visible (unless already installed or dismissed)
+   Shows even before beforeinstallprompt fires, so user always sees the CTA.
+   Button behaviour:
+     • nativeReady  → trigger Chrome/Edge native install prompt
+     • isIOS        → show step-by-step iOS modal
+     • otherwise    → show a manual hint tooltip
+───────────────────────────────────────────────────────────────────────────── */
+function InstallBanner() {
+  const { nativeReady, isIOS, isInstalled, install } = usePWAInstall();
+  const [dismissed, setDismissed] = useState(
+    () => localStorage.getItem("pwa_banner_v2") === "1"
+  );
+  const [showIOSModal, setShowIOSModal]   = useState(false);
+  const [showHint, setShowHint]           = useState(false);
+
+  // Never show if already running as installed PWA
+  if (isInstalled || dismissed) return null;
+
+  const dismiss = () => {
+    setDismissed(true);
+    localStorage.setItem("pwa_banner_v2", "1");
+  };
+
+  const handleInstall = async () => {
+    if (nativeReady) {
+      await install();
+    } else if (isIOS) {
+      setShowIOSModal(true);
+    } else {
+      // Desktop Chrome: prompt may not have fired yet — show hint
+      setShowHint(true);
+      setTimeout(() => setShowHint(false), 4000);
+    }
+  };
+
+  return (
+    <>
+      {showIOSModal && <IOSModal onClose={() => setShowIOSModal(false)} />}
+      <div className="relative overflow-hidden mx-2.5 mb-2 rounded-2xl shadow-lg"
+           style={{ background: "linear-gradient(135deg,#16213e 0%,#1a7a4a 100%)" }}>
+        {/* Decorative blobs */}
+        <div className="absolute -top-8 -right-8 w-32 h-32 rounded-full bg-white/5 pointer-events-none" />
+        <div className="absolute -bottom-6 -left-6 w-20 h-20 rounded-full bg-white/5 pointer-events-none" />
+
+        <div className="relative flex items-center gap-3 p-3.5 pr-10">
+          {/* App icon */}
+          <img src="/icon.jpeg" alt="VMDFix"
+               className="w-14 h-14 rounded-2xl flex-shrink-0 shadow-lg object-cover border-2 border-white/20" />
+
+          {/* Content */}
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-1.5 mb-0.5">
+              <span className="text-white font-extrabold text-sm">VMDFix</span>
+              <span className="bg-green-400/30 text-green-200 text-[9px] font-bold px-1.5 py-0.5 rounded-full">FREE</span>
+              {nativeReady && (
+                <span className="bg-blue-400/30 text-blue-200 text-[9px] font-bold px-1.5 py-0.5 rounded-full animate-pulse">
+                  Ready!
+                </span>
+              )}
+            </div>
+            <p className="text-white/60 text-[10px] mb-2">Home services at your fingertips</p>
+            <PlayStoreBadge
+              onClick={handleInstall}
+              label={nativeReady ? "Install Now" : isIOS ? "Add to Home" : "Install App"}
+            />
+            {showHint && (
+              <p className="text-yellow-300 text-[10px] mt-1.5 font-semibold animate-pulse">
+                💡 Use Chrome/Edge browser for one-tap install
+              </p>
+            )}
           </div>
-        </div>
-        <div className="flex items-center gap-2 flex-shrink-0">
-          <button onClick={dismiss} className="text-xs text-gray-400 hover:text-gray-600 px-3 py-2 rounded-lg hover:bg-gray-100">
-            {t("pwa_install_later") || "Maybe Later"}
-          </button>
-          <button onClick={install}
-            className="flex items-center gap-2 px-5 py-2.5 rounded-xl font-extrabold text-sm text-white shadow hover:shadow-lg active:scale-95 transition-all"
-            style={{ background: "linear-gradient(135deg,#1a7a4a,#16213e)" }}>
-            <Smartphone className="w-4 h-4" />
-            {t("pwa_install_btn") || "Add to Home Screen"}
+
+          {/* Dismiss */}
+          <button onClick={dismiss}
+            className="absolute top-2 right-2 text-white/40 hover:text-white/80 p-1 rounded-lg transition-colors">
+            <X size={13} />
           </button>
         </div>
       </div>
-    </section>
+    </>
   );
 }
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   PWA Install CTA — bottom of page, ALWAYS visible (same logic as banner)
+───────────────────────────────────────────────────────────────────────────── */
+function InstallCTADesktop({ t }) {
+  const { nativeReady, isIOS, isInstalled, install } = usePWAInstall();
+  const [dismissed, setDismissed] = useState(
+    () => localStorage.getItem("pwa_cta_v2") === "1"
+  );
+  const [showIOSModal, setShowIOSModal] = useState(false);
+  const [showHint, setShowHint]        = useState(false);
+
+  if (isInstalled || dismissed) return null;
+
+  const dismiss = () => {
+    setDismissed(true);
+    localStorage.setItem("pwa_cta_v2", "1");
+  };
+
+  const handleInstall = async () => {
+    if (nativeReady) {
+      await install();
+    } else if (isIOS) {
+      setShowIOSModal(true);
+    } else {
+      setShowHint(true);
+      setTimeout(() => setShowHint(false), 5000);
+    }
+  };
+
+  return (
+    <>
+      {showIOSModal && <IOSModal onClose={() => setShowIOSModal(false)} />}
+      <section style={{ margin: "0 10px 16px" }}>
+        <div className="relative overflow-hidden rounded-2xl shadow-lg"
+             style={{ background: "linear-gradient(135deg,#16213e 0%,#1a7a4a 100%)" }}>
+          <div className="absolute -top-10 -right-10 w-40 h-40 rounded-full bg-white/5 pointer-events-none" />
+
+          <div className="flex items-center justify-between gap-4 px-4 py-4">
+            {/* Left: icon + text */}
+            <div className="flex items-center gap-3 min-w-0">
+              <img src="/icon.jpeg" alt="VMDFix"
+                className="w-14 h-14 rounded-2xl shadow-lg object-cover border-2 border-white/20 flex-shrink-0" />
+              <div className="min-w-0">
+                <div className="flex items-center gap-2 mb-0.5 flex-wrap">
+                  <p className="font-extrabold text-white text-sm leading-tight">VMDFix App</p>
+                  <span className="bg-green-400/30 text-green-200 text-[9px] font-bold px-1.5 py-0.5 rounded-full">FREE</span>
+                  {nativeReady && (
+                    <span className="bg-blue-400/30 text-blue-200 text-[9px] font-bold px-1.5 py-0.5 rounded-full animate-pulse">
+                      Ready to install
+                    </span>
+                  )}
+                </div>
+                <p className="text-white/60 text-[11px]">Book home services · Works offline</p>
+                <div className="flex items-center gap-0.5 mt-1">
+                  {[1,2,3,4,5].map(i => <span key={i} className="text-yellow-400 text-[10px]">★</span>)}
+                  <span className="text-white/50 text-[10px] ml-1">4.8 · 10k+ installs</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Right: install + dismiss */}
+            <div className="flex flex-col items-end gap-2 flex-shrink-0">
+              <PlayStoreBadge
+                onClick={handleInstall}
+                label={nativeReady ? "Install Now" : isIOS ? "Add to Home" : "Install App"}
+              />
+              <button onClick={dismiss} className="text-white/40 hover:text-white/70 text-[10px] underline">
+                {t ? t("pwa_install_later") : "Maybe Later"}
+              </button>
+            </div>
+          </div>
+
+          {/* Hint or ready message */}
+          {(nativeReady || showHint) && (
+            <div className="px-4 pb-3">
+              <p className={`text-[10px] font-semibold ${nativeReady ? "text-green-300" : "text-yellow-300 animate-pulse"}`}>
+                {nativeReady
+                  ? "✓ Your browser supports install — tap the button above!"
+                  : "💡 Open in Chrome or Edge on Android/desktop for one-tap install"}
+              </p>
+            </div>
+          )}
+        </div>
+      </section>
+    </>
+  );
+}
+
 
 export default function Home() {
   const [quickServices, setQuickServices] = useState([]);
@@ -399,7 +576,7 @@ export default function Home() {
       )}
 
       {/* ── PWA Install Banner (mobile, shown below hero) ─────────────── */}
-      <InstallBanner t={t} />
+      <InstallBanner />
 
       {/* ── Trust badges (desktop only) ──────────────────────────────────── */}
       <div className="hidden lg:grid grid-cols-4 gap-3" style={{ padding: "0 12px 8px", background: "#fff", marginBottom: "8px" }}>

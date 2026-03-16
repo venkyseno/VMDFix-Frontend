@@ -94,13 +94,13 @@ export default function Layout({ children }) {
             ) : null}
 
             <Link to={isAdmin ? "/admin/dashboard" : "/"} className="flex items-center gap-2">
-              <img src="/icon.png" alt="VMDFix" className="rounded-xl object-cover flex-shrink-0 shadow-sm" style={{ width: 24, height: 24 }} />
+              <img src="/icon.jpeg" alt="VMDFix" className="rounded-xl object-cover flex-shrink-0 shadow-sm" style={{ width: 30, height: 30 }} />
               {isAdmin ? (
                 <span className="font-extrabold text-sm" style={{ color: "#16213e", letterSpacing: "-0.03em" }}>
                   VMD<span style={{ color: "#1a7a4a" }}>Fix</span> <span style={{ color:"#e53e3e" }}>Admin</span>
                 </span>
               ) : (
-                <img src="/appname.png" alt="VMDFix" className="rounded-xl object-cover flex-shrink-0 shadow-sm" style={{ height: 25, maxWidth: 110 }} />
+                <img src="/appname.jpeg" alt="VMDFix" className="hidden sm:block object-contain" style={{ height: 22, maxWidth: 110 }} />
               )}
             </Link>
           </div>

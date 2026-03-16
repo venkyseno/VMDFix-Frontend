@@ -1,16 +1,7 @@
 import { Navigate } from "react-router-dom";
-
 export default function WorkerRoute({ children }) {
   let user = null;
-  try {
-    user = JSON.parse(localStorage.getItem("user") || "null");
-  } catch {
-    // corrupted storage — treat as logged out
-  }
-
-  if (!user || user.role !== "WORKER") {
-    return <Navigate to="/login" />;
-  }
-
+  try { user = JSON.parse(localStorage.getItem("user") || "null"); } catch {}
+  if (!user || user.role !== "WORKER") return <Navigate to="/login" />;
   return children;
 }

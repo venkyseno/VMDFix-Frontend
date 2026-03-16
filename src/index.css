@@ -73,16 +73,11 @@ input[type="file"]::file-selector-button:hover { background: #d0ead9; }
   border-color: #a7d9b8 !important;
 }
 
-/* ──────────────────────────────────────────────────────────────────
-   HOME PAGE — Full-bleed sections, no nested cards
-   Inspired by Urban Company / Home Triangle pattern
-──────────────────────────────────────────────────────────────────── */
 .home-section {
   background: #ffffff;
   margin-bottom: 8px;
 }
 
-/* 3-column service card grid — cards touch near edge */
 .service-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -90,7 +85,6 @@ input[type="file"]::file-selector-button:hover { background: #d0ead9; }
   padding: 0 10px 14px;
 }
 
-/* Individual service card */
 .service-card {
   cursor: pointer;
   border-radius: 12px;
@@ -110,7 +104,6 @@ input[type="file"]::file-selector-button:hover { background: #d0ead9; }
   box-shadow: 0 4px 12px rgba(0,0,0,0.12);
 }
 
-/* Square image wrapper */
 .service-card-img-wrap {
   position: relative;
   width: 100%;
@@ -129,7 +122,6 @@ input[type="file"]::file-selector-button:hover { background: #d0ead9; }
 .service-card:hover .service-card-img  { transform: scale(1.08); }
 .service-card:active .service-card-img { transform: scale(1.04); }
 
-/* Book Now button inside card */
 .service-card-book-btn {
   display: block; width: 100%; padding: 5px 0;
   border-radius: 7px; border: none;
@@ -140,7 +132,6 @@ input[type="file"]::file-selector-button:hover { background: #d0ead9; }
 }
 .service-card-book-btn:hover { opacity: 0.88; }
 
-/* Section header — left accent stripe */
 .sec-head {
   display: flex;
   align-items: center;
@@ -165,9 +156,6 @@ input[type="file"]::file-selector-button:hover { background: #d0ead9; }
   white-space: nowrap; flex-shrink: 0;
 }
 
-/* ──────────────────────────────────────────────────────────────────
-   MARKETPLACE CARD — horizontal rows
-──────────────────────────────────────────────────────────────────── */
 .mkt-card {
   position: relative; background: #fff;
   border-radius: 12px; overflow: hidden;
@@ -190,9 +178,6 @@ input[type="file"]::file-selector-button:hover { background: #d0ead9; }
 .mkt-card:hover .mkt-img  { transform: scale(1.06); }
 .mkt-card:active .mkt-img { transform: scale(1.03); }
 
-/* ──────────────────────────────────────────────────────────────────
-   App icon — rounded square (NOT oval)
-──────────────────────────────────────────────────────────────────── */
 .app-logo-icon {
   width: 36px; height: 36px;
   border-radius: 10px;
@@ -202,9 +187,6 @@ input[type="file"]::file-selector-button:hover { background: #d0ead9; }
   box-shadow: 0 2px 8px rgba(26,122,74,0.30);
 }
 
-/* ──────────────────────────────────────────────────────────────────
-   Skeleton loading shimmer
-──────────────────────────────────────────────────────────────────── */
 .skeleton {
   background: linear-gradient(90deg, #f0f0f0 25%, #e8e8e8 50%, #f0f0f0 75%);
   background-size: 200% 100%;
@@ -212,9 +194,6 @@ input[type="file"]::file-selector-button:hover { background: #d0ead9; }
   border-radius: 10px;
 }
 
-/* ──────────────────────────────────────────────────────────────────
-   Admin nav labels always visible
-──────────────────────────────────────────────────────────────────── */
 .admin-nav-label {
   display: inline !important; opacity: 1 !important;
   visibility: visible !important; overflow: visible !important;

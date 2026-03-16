@@ -11,7 +11,6 @@ export default function Withdraw() {
   const navigate = useNavigate();
   const { t } = useTranslation();
   const user = JSON.parse(localStorage.getItem("user") || "null");
-
   const handleWithdraw = async () => {
     if (!user) return navigate("/login");
     if (!amount || Number(amount) < 500) return alert(t("min_500"));
@@ -23,9 +22,7 @@ export default function Withdraw() {
     } catch (e) { alert(e.response?.data || "Withdrawal failed"); }
     finally { setLoading(false); }
   };
-
   const AMOUNTS = [500, 1000, 2000, 5000];
-
   return (
     <PageContainer title={t("withdraw_cashback")} subtitle={t("transfer_earnings")}>
       <Card>
@@ -33,7 +30,6 @@ export default function Withdraw() {
           <Info size={14} className="text-blue-600 flex-shrink-0" />
           <p className="text-xs text-blue-700 font-medium">{t("min_note")}</p>
         </div>
-
         <div className="mb-4">
           <p className="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-2">Quick Select</p>
           <div className="grid grid-cols-4 gap-2">
@@ -45,20 +41,8 @@ export default function Withdraw() {
             ))}
           </div>
         </div>
-
-        <InputField
-          type="number"
-          label={t("custom_amount")}
-          placeholder={t("amount_placeholder")}
-          value={amount}
-          onChange={e => setAmount(e.target.value)}
-        />
-
-        <PrimaryButton
-          onClick={handleWithdraw}
-          disabled={loading || !amount || Number(amount) < 500}
-          className="mt-5 w-full py-3"
-        >
+        <InputField type="number" label={t("custom_amount")} placeholder={t("amount_placeholder")} value={amount} onChange={e => setAmount(e.target.value)} />
+        <PrimaryButton onClick={handleWithdraw} disabled={loading || !amount || Number(amount) < 500} className="mt-5 w-full py-3">
           <Banknote size={15} />
           {loading ? t("processing") : `${t("withdraw_label")} ₹${amount || 0}`}
         </PrimaryButton>

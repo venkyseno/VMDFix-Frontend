@@ -13,6 +13,7 @@ const NAV = [
   { to:"/admin/workers",        label:"Workers",            icon:"👷" },
   { to:"/admin/coupons",        label:"Coupons",            icon:"🎟️" },
   { to:"/admin/withdrawals",    label:"Withdrawals",        icon:"💳" },
+  { to:"/admin/notifications",  label:"Push Notifications", icon:"🔔" },
 ];
 
 /* WhatsApp SVG icon */
@@ -94,13 +95,13 @@ export default function Layout({ children }) {
             ) : null}
 
             <Link to={isAdmin ? "/admin/dashboard" : "/"} className="flex items-center gap-2">
-              <img src="/icon.jpeg" alt="VMDFix" className="rounded-xl object-cover flex-shrink-0 shadow-sm" style={{ width: 30, height: 30 }} />
+              <img src="/icon.png" alt="VMDFix" className="object-contain flex-shrink-0" style={{ width: 28, height: 28 }} />
               {isAdmin ? (
                 <span className="font-extrabold text-sm" style={{ color: "#16213e", letterSpacing: "-0.03em" }}>
                   VMD<span style={{ color: "#1a7a4a" }}>Fix</span> <span style={{ color:"#e53e3e" }}>Admin</span>
                 </span>
               ) : (
-                <img src="/appname.jpeg" alt="VMDFix" className="hidden sm:block object-contain" style={{ height: 22, maxWidth: 110 }} />
+                <img src="/appname.png" alt="VMDFix" className="object-contain" style={{ height: 20, maxWidth: 100 }} />
               )}
             </Link>
           </div>

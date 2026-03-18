@@ -3,10 +3,14 @@
   "short_name": "VMDFix",
   "description": "Book trusted home service professionals in minutes",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
   "background_color": "#f8f9fb",
   "theme_color": "#16213e",
   "orientation": "portrait-primary",
+  "launch_handler": {
+    "client_mode": "navigate-existing"
+  },
   "icons": [
     {
       "src": "/icon.jpeg",
@@ -21,6 +25,5 @@
       "purpose": "any maskable"
     }
   ],
-  "categories": ["utilities", "lifestyle"],
-  "screenshots": []
+  "categories": ["utilities", "lifestyle"]
 }

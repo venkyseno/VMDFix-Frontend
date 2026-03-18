@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import api from "../api/api";
 import { NavCardLink, StatCard } from "../components/ui";
-import { LayoutGrid, Image, Wrench, Users, Tag, CreditCard } from "lucide-react";
+import { LayoutGrid, Image, Wrench, Users, Tag, CreditCard, Bell } from "lucide-react";
 import { useTranslation } from "../i18n/LanguageContext";
 
 export default function AdminDashboard() {
@@ -33,6 +33,7 @@ export default function AdminDashboard() {
         <NavCardLink to="/admin/workers" icon={<Users size={16} />} label={t("workers")} desc={t("approve_manage")} />
         <NavCardLink to="/admin/coupons" icon={<Tag size={16} />} label={t("coupons")} desc={t("create_discounts")} />
         <NavCardLink to="/admin/withdrawals" icon={<CreditCard size={16} />} label="Withdrawals" desc={t("process_payouts")} />
+        <NavCardLink to="/admin/notifications" icon={<Bell size={16} />} label="Push Notifications" desc="Send campaigns to all users" />
       </div>
     </div>
   );

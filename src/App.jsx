@@ -21,6 +21,20 @@ import AdminWithdrawalsPage from "./pages/admin/AdminWithdrawalsPage";
 import AdminQuickServicesPage from "./pages/admin/AdminQuickServicesPage";
 import OtherServiceDetail from "./pages/OtherServiceDetail";
 import AdminOurServicesPage from "./pages/admin/AdminOurServicesPage";
+import AdminNotificationsPage from "./pages/admin/AdminNotificationsPage";
+
+function NotFound() {
+  return (
+    <div style={{ minHeight: "60vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 12, padding: 24 }}>
+      <div style={{ fontSize: 64 }}>🔍</div>
+      <h1 style={{ fontSize: 20, fontWeight: 800, color: "#16213e", margin: 0 }}>Page Not Found</h1>
+      <p style={{ fontSize: 14, color: "#6b7280", margin: 0 }}>The page you're looking for doesn't exist.</p>
+      <a href="/" style={{ marginTop: 8, background: "linear-gradient(135deg,#1a7a4a,#16213e)", color: "#fff", padding: "10px 24px", borderRadius: 12, fontWeight: 700, fontSize: 13, textDecoration: "none" }}>
+        Go to Home
+      </a>
+    </div>
+  );
+}
 
 function App() {
   return (
@@ -45,7 +59,9 @@ function App() {
           <Route path="/admin/withdrawals" element={<AdminRoute><AdminWithdrawalsPage /></AdminRoute>} />
           <Route path="/admin/quick-services" element={<AdminRoute><AdminQuickServicesPage /></AdminRoute>} />
           <Route path="/admin/our-services" element={<AdminRoute><AdminOurServicesPage /></AdminRoute>} />
+          <Route path="/admin/notifications" element={<AdminRoute><AdminNotificationsPage /></AdminRoute>} />
           <Route path="/worker/dashboard" element={<WorkerRoute><WorkerDashboard /></WorkerRoute>} />
+          <Route path="*" element={<NotFound />} />
         </Routes>
       </Layout>
     </BrowserRouter>

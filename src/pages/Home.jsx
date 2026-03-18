@@ -1,6 +1,6 @@
 import { Link, useNavigate } from "react-router-dom";
 import { useEffect, useState, useCallback } from "react";
-import api from "../api/api";
+import api, { normalizeImageUrl } from "../api/api";
 import { EmptyState } from "../components/ui";
 import { Search, TrendingUp, Shield, Award, Zap, ChevronLeft, ChevronRight, Smartphone, X } from "lucide-react";
 import { useTranslation } from "../i18n/LanguageContext";
@@ -23,60 +23,35 @@ const DEFAULT_OUR = [
   { id:6, name:"General",     description:"Custom & general service requests",        price:"₹300+", gradient:"from-indigo-500 to-violet-500", imageUrl:"https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=400&h=400&fit=crop&q=80" },
 ];
 
-/* ── Render free-tier uploads are ephemeral — detect and replace ───────────── */
-const isRenderUpload = (url = "") => Boolean(url && url.includes("onrender.com/uploads/"));
+/* ── Service card image with onError fallback only ─────────────────────────── */
 const CARD_FALLBACKS = {
-  plumber:"https://images.unsplash.com/photo-1542632867-261e4be41c7c?w=400&h=400&fit=crop&q=80",
-  electrician:"https://images.unsplash.com/photo-1621905251189-08b45d6a269e?w=400&h=400&fit=crop&q=80",
-  carpenter:"https://images.unsplash.com/photo-1504148455328-c376907d081c?w=400&h=400&fit=crop&q=80",
-  mason:"https://images.unsplash.com/photo-1574359411659-15573a27fd0c?w=400&h=400&fit=crop&q=80",
-  painter:"https://images.unsplash.com/photo-1562259929-b4e1fd3aef09?w=400&h=400&fit=crop&q=80",
-  ac:"https://images.unsplash.com/photo-1585771724684-38269d6639fd?w=400&h=400&fit=crop&q=80",
-  default:"https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=400&h=400&fit=crop&q=80",
+  plumber:     "https://images.unsplash.com/photo-1542632867-261e4be41c7c?w=400&h=400&fit=crop&q=80",
+  electrician: "https://images.unsplash.com/photo-1621905251189-08b45d6a269e?w=400&h=400&fit=crop&q=80",
+  carpenter:   "https://images.unsplash.com/photo-1504148455328-c376907d081c?w=400&h=400&fit=crop&q=80",
+  mason:       "https://images.unsplash.com/photo-1574359411659-15573a27fd0c?w=400&h=400&fit=crop&q=80",
+  painter:     "https://images.unsplash.com/photo-1562259929-b4e1fd3aef09?w=400&h=400&fit=crop&q=80",
+  ac:          "https://images.unsplash.com/photo-1585771724684-38269d6639fd?w=400&h=400&fit=crop&q=80",
+  default:     "https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=400&h=400&fit=crop&q=80",
 };
-function cardFallback(name=""){const n=name.toLowerCase();for(const[k,u]of Object.entries(CARD_FALLBACKS)){if(k!=="default"&&n.includes(k))return u;}return CARD_FALLBACKS.default;}
+function cardFallback(name = "") {
+  const n = name.toLowerCase();
+  for (const [k, u] of Object.entries(CARD_FALLBACKS)) {
+    if (k !== "default" && n.includes(k)) return u;
+  }
+  return CARD_FALLBACKS.default;
+}
+/* Only falls back when the image actually fails — never blocks backend URLs */
 function SafeCardImg({ src, name }) {
   const [err, setErr] = useState(false);
-  const bad = err || !src || isRenderUpload(src);
-  return <img src={bad ? cardFallback(name) : src} alt={name} className="service-card-img" loading="lazy" onError={() => setErr(true)} />;
+  const normalized = normalizeImageUrl(src);
+  const imgSrc = (!normalized || err) ? cardFallback(name) : normalized;
+  return <img src={imgSrc} alt={name} className="service-card-img" loading="lazy" onError={() => setErr(true)} />;
 }
-
 function SafeMktImg({ src, name }) {
   const [err, setErr] = useState(false);
-  const bad = err || !src || isRenderUpload(src);
-  if (bad) return <div className="w-full h-full bg-gradient-to-br from-indigo-100 to-purple-100 flex items-center justify-center text-2xl">🛒</div>;
-  return <img src={src} alt={name} className="mkt-img w-full h-full object-cover" onError={() => setErr(true)} />;
-}
-
-/* ── Translate service name via i18n keys ──────────────────────────────────── */
-function tSvcName(name = "", t) {
-  // Map service name → translation key (case-insensitive keyword match)
-  const key = name.toLowerCase();
-  if (key.includes("plumber"))        return t("svc_plumber", name);
-  if (key.includes("electric"))       return t("svc_electrician", name);
-  if (key.includes("carpenter"))      return t("svc_carpenter", name);
-  if (key.includes("mason"))          return t("svc_mason", name);
-  if (key.includes("paint"))          return t("svc_painter", name);
-  if (key.includes("ac") || key.includes("air condition")) return t("svc_ac_repair", name);
-  if (key.includes("clean"))          return t("svc_cleaner", name);
-  if (key.includes("pest"))           return t("svc_pest_control", name);
-  if (key.includes("appliance"))      return t("svc_appliance", name);
-  if (key.includes("weld"))           return t("svc_welding", name);
-  if (key.includes("fabric"))         return t("svc_fabrication", name);
-  if (key.includes("waterproof"))     return t("svc_waterproofing", name);
-  if (key.includes("floor"))          return t("svc_flooring", name);
-  if (key.includes("til"))            return t("svc_tiling", name);
-  if (key.includes("roof"))           return t("svc_roofing", name);
-  if (key.includes("glass"))          return t("svc_glass", name);
-  if (key.includes("security"))       return t("svc_security", name);
-  if (key.includes("cctv"))           return t("svc_cctv", name);
-  if (key.includes("sofa"))           return t("svc_sofa", name);
-  if (key.includes("bathroom"))       return t("svc_bathroom", name);
-  if (key.includes("kitchen"))        return t("svc_kitchen", name);
-  if (key.includes("door") || key.includes("window")) return t("svc_door", name);
-  if (key.includes("false ceiling") || key.includes("ceiling")) return t("svc_false_ceiling", name);
-  if (key.includes("general"))        return t("svc_general", name);
-  return name; // fallback: show original name
+  const normalized = normalizeImageUrl(src);
+  if (!normalized || err) return <div className="w-full h-full bg-gradient-to-br from-indigo-100 to-purple-100 flex items-center justify-center text-2xl">🛒</div>;
+  return <img src={normalized} alt={name} className="mkt-img w-full h-full object-cover" onError={() => setErr(true)} />;
 }
 
 /* ── Service Card — NO ratings ─────────────────────────────────────────────── */
@@ -97,7 +72,7 @@ function ServiceCard({ service, onClick, showBookings, t }) {
 
         {/* Price overlay at bottom */}
         <div className="absolute bottom-0 left-0 right-0 px-2 pb-1.5 pt-3 pointer-events-none">
-          <p className="font-bold text-white text-[11px] leading-tight truncate drop-shadow">{tSvcName(service.name, t)}</p>
+          <p className="font-bold text-white text-[11px] leading-tight truncate drop-shadow">{service.name}</p>
           <div className="flex items-center justify-between mt-0.5">
             <span className="text-white font-extrabold text-[11px] drop-shadow">{service.price || "₹400"}</span>
             {showBookings && service.bookings && (
@@ -226,7 +201,7 @@ function MarketplaceCard({ service, t }) {
           <div className="flex-1 min-w-0 flex flex-col justify-between">
             <div>
               <div className="flex items-start justify-between gap-1 mb-1">
-                <h3 className="font-bold text-gray-900 text-sm line-clamp-1">{tSvcName(service.name, t)}</h3>
+                <h3 className="font-bold text-gray-900 text-sm line-clamp-1">{service.name}</h3>
                 <div className="flex items-center gap-0.5 bg-green-50 px-1.5 py-0.5 rounded-md flex-shrink-0">
                   <TrendingUp className="w-2.5 h-2.5 text-green-600" />
                   <span className="text-[9px] font-bold text-green-700">Popular</span>
@@ -357,73 +332,39 @@ function PlayStoreBadge({ onClick, label = "Install App" }) {
 ───────────────────────────────────────────────────────────────────────────── */
 function InstallBanner() {
   const { nativeReady, isIOS, isInstalled, install } = usePWAInstall();
-  const [dismissed, setDismissed] = useState(
-    () => localStorage.getItem("pwa_banner_v2") === "1"
-  );
-  const [showIOSModal, setShowIOSModal]   = useState(false);
-  const [showHint, setShowHint]           = useState(false);
+  const [dismissed, setDismissed] = useState(() => localStorage.getItem("pwa_banner_v3") === "1");
+  const [showIOSModal, setShowIOSModal] = useState(false);
 
-  // Never show if already running as installed PWA
   if (isInstalled || dismissed) return null;
 
-  const dismiss = () => {
-    setDismissed(true);
-    localStorage.setItem("pwa_banner_v2", "1");
-  };
-
+  const dismiss = () => { setDismissed(true); localStorage.setItem("pwa_banner_v3", "1"); };
   const handleInstall = async () => {
-    if (nativeReady) {
-      await install();
-    } else if (isIOS) {
-      setShowIOSModal(true);
-    } else {
-      // Desktop Chrome: prompt may not have fired yet — show hint
-      setShowHint(true);
-      setTimeout(() => setShowHint(false), 4000);
-    }
+    if (nativeReady) { await install(); }
+    else if (isIOS) { setShowIOSModal(true); }
   };
 
   return (
     <>
       {showIOSModal && <IOSModal onClose={() => setShowIOSModal(false)} />}
-      <div className="relative overflow-hidden mx-2.5 mb-2 rounded-2xl shadow-lg"
-           style={{ background: "linear-gradient(135deg,#16213e 0%,#1a7a4a 100%)" }}>
-        {/* Decorative blobs */}
-        <div className="absolute -top-8 -right-8 w-32 h-32 rounded-full bg-white/5 pointer-events-none" />
-        <div className="absolute -bottom-6 -left-6 w-20 h-20 rounded-full bg-white/5 pointer-events-none" />
-
-        <div className="relative flex items-center gap-3 p-3.5 pr-10">
-          {/* App icon */}
-          <img src="/icon.jpeg" alt="VMDFix"
-               className="w-14 h-14 rounded-2xl flex-shrink-0 shadow-lg object-cover border-2 border-white/20" />
-
-          {/* Content */}
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-1.5 mb-0.5">
-              <span className="text-white font-extrabold text-sm">VMDFix</span>
-              <span className="bg-green-400/30 text-green-200 text-[9px] font-bold px-1.5 py-0.5 rounded-full">FREE</span>
-              {nativeReady && (
-                <span className="bg-blue-400/30 text-blue-200 text-[9px] font-bold px-1.5 py-0.5 rounded-full animate-pulse">
-                  Ready!
-                </span>
-              )}
-            </div>
-            <p className="text-white/60 text-[10px] mb-2">Home services at your fingertips</p>
-            <PlayStoreBadge
-              onClick={handleInstall}
-              label={nativeReady ? "Install Now" : isIOS ? "Add to Home" : "Install App"}
-            />
-            {showHint && (
-              <p className="text-yellow-300 text-[10px] mt-1.5 font-semibold animate-pulse">
-                💡 Use Chrome/Edge browser for one-tap install
-              </p>
-            )}
-          </div>
-
-          {/* Dismiss */}
-          <button onClick={dismiss}
-            className="absolute top-2 right-2 text-white/40 hover:text-white/80 p-1 rounded-lg transition-colors">
-            <X size={13} />
+      {/* Slim one-liner banner ABOVE hero carousel */}
+      <div className="flex items-center justify-between gap-2 px-3 py-2 mx-2.5 mb-1.5 rounded-xl shadow-sm"
+           style={{ background: "linear-gradient(90deg,#16213e,#1a7a4a)" }}>
+        <div className="flex items-center gap-2 min-w-0">
+          <img src="/icon.jpeg" alt="VMDFix" className="w-7 h-7 rounded-lg flex-shrink-0 object-cover" />
+          <span className="text-white font-bold text-xs truncate">
+            Install VMDFix App — Free
+          </span>
+          {nativeReady && <span className="text-green-300 text-[9px] font-bold flex-shrink-0">● Ready</span>}
+        </div>
+        <div className="flex items-center gap-1.5 flex-shrink-0">
+          <button
+            onClick={handleInstall}
+            className="bg-white text-[11px] font-extrabold px-3 py-1 rounded-lg active:scale-95 transition-all flex-shrink-0"
+            style={{ color: "#1a7a4a" }}>
+            {nativeReady ? "Install" : isIOS ? "Add" : "Install"}
+          </button>
+          <button onClick={dismiss} className="text-white/40 hover:text-white/80 p-0.5">
+            <X size={12} />
           </button>
         </div>
       </div>
@@ -436,18 +377,11 @@ function InstallBanner() {
 ───────────────────────────────────────────────────────────────────────────── */
 function InstallCTADesktop({ t }) {
   const { nativeReady, isIOS, isInstalled, install } = usePWAInstall();
-  const [dismissed, setDismissed] = useState(
-    () => localStorage.getItem("pwa_cta_v2") === "1"
-  );
   const [showIOSModal, setShowIOSModal] = useState(false);
   const [showHint, setShowHint]        = useState(false);
 
-  if (isInstalled || dismissed) return null;
-
-  const dismiss = () => {
-    setDismissed(true);
-    localStorage.setItem("pwa_cta_v2", "1");
-  };
+  // Always visible unless already installed as PWA
+  if (isInstalled) return null;
 
   const handleInstall = async () => {
     if (nativeReady) {
@@ -491,15 +425,12 @@ function InstallCTADesktop({ t }) {
               </div>
             </div>
 
-            {/* Right: install + dismiss */}
+            {/* Right: install button only (no dismiss) */}
             <div className="flex flex-col items-end gap-2 flex-shrink-0">
               <PlayStoreBadge
                 onClick={handleInstall}
                 label={nativeReady ? "Install Now" : isIOS ? "Add to Home" : "Install App"}
               />
-              <button onClick={dismiss} className="text-white/40 hover:text-white/70 text-[10px] underline">
-                {t ? t("pwa_install_later") : "Maybe Later"}
-              </button>
             </div>
           </div>
 
@@ -568,15 +499,15 @@ export default function Home() {
         </div>
       </div>
 
+      {/* ── PWA Install Banner (slim, above hero banners) ──────────────── */}
+      <InstallBanner />
+
       {/* ── Banner ───────────────────────────────────────────────────────── */}
       {!loading && banners.length > 0 && (
         <div style={{ marginBottom: "8px" }}>
           <BannerCarousel banners={banners} />
         </div>
       )}
-
-      {/* ── PWA Install Banner (mobile, shown below hero) ─────────────── */}
-      <InstallBanner />
 
       {/* ── Trust badges (desktop only) ──────────────────────────────────── */}
       <div className="hidden lg:grid grid-cols-4 gap-3" style={{ padding: "0 12px 8px", background: "#fff", marginBottom: "8px" }}>

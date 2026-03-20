@@ -2,28 +2,28 @@ import { Link, useNavigate } from "react-router-dom";
 import { useEffect, useState, useCallback } from "react";
 import api, { normalizeImageUrl } from "../api/api";
 import { EmptyState } from "../components/ui";
-import { Search, TrendingUp, Shield, Award, Zap, ChevronLeft, ChevronRight, Smartphone, X } from "lucide-react";
+import { Search, TrendingUp, Shield, Award, Zap, ChevronLeft, ChevronRight, X } from "lucide-react";
 import { useTranslation } from "../i18n/LanguageContext";
 
-/* ── Default fallback data ─────────────────────────────────────────────────── */
+/* ── Default fallback data — tagged with _source to prevent ID collisions ── */
 const DEFAULT_QUICK = [
-  { id:"q1", name:"Plumber",     description:"Pipe repair & leakage fix",      price:"₹400",  bookings:"2.5k+", gradient:"from-blue-500 to-cyan-600",    tag:"TRENDING", imageUrl:"https://images.unsplash.com/photo-1542632867-261e4be41c7c?w=400&h=400&fit=crop&q=80" },
-  { id:"q2", name:"Electrician", description:"Wiring, switches & fan repair",   price:"₹350",  bookings:"3.2k+", gradient:"from-amber-500 to-orange-600",  imageUrl:"https://images.unsplash.com/photo-1621905251189-08b45d6a269e?w=400&h=400&fit=crop&q=80" },
-  { id:"q3", name:"Carpenter",   description:"Furniture & door fixing",          price:"₹500",  bookings:"1.8k+", gradient:"from-yellow-500 to-amber-600",  imageUrl:"https://images.unsplash.com/photo-1504148455328-c376907d081c?w=400&h=400&fit=crop&q=80" },
-  { id:"q4", name:"Mason",       description:"Brickwork, plastering & tiling",   price:"₹600",  bookings:"1.2k+", gradient:"from-red-500 to-rose-600",      tag:"PRO",      imageUrl:"https://images.unsplash.com/photo-1574359411659-15573a27fd0c?w=400&h=400&fit=crop&q=80" },
-  { id:"q5", name:"Painter",     description:"Interior & exterior painting",     price:"₹700",  bookings:"2.1k+", gradient:"from-pink-500 to-rose-600",     imageUrl:"https://images.unsplash.com/photo-1562259929-b4e1fd3aef09?w=400&h=400&fit=crop&q=80" },
-  { id:"q6", name:"AC Repair",   description:"AC service & installation",        price:"₹450",  bookings:"2.8k+", gradient:"from-cyan-500 to-blue-600",    tag:"HOT",      imageUrl:"https://images.unsplash.com/photo-1585771724684-38269d6639fd?w=400&h=400&fit=crop&q=80" },
+  { id:"q1", _source:"quick", name:"Plumber",     description:"Pipe repair & leakage fix",      price:"₹400",  bookings:"2.5k+", gradient:"from-blue-500 to-cyan-600",    tag:"TRENDING", imageUrl:"https://images.unsplash.com/photo-1542632867-261e4be41c7c?w=400&h=400&fit=crop&q=80" },
+  { id:"q2", _source:"quick", name:"Electrician", description:"Wiring, switches & fan repair",   price:"₹350",  bookings:"3.2k+", gradient:"from-amber-500 to-orange-600",  imageUrl:"https://images.unsplash.com/photo-1621905251189-08b45d6a269e?w=400&h=400&fit=crop&q=80" },
+  { id:"q3", _source:"quick", name:"Carpenter",   description:"Furniture & door fixing",          price:"₹500",  bookings:"1.8k+", gradient:"from-yellow-500 to-amber-600",  imageUrl:"https://images.unsplash.com/photo-1504148455328-c376907d081c?w=400&h=400&fit=crop&q=80" },
+  { id:"q4", _source:"quick", name:"Mason",       description:"Brickwork, plastering & tiling",   price:"₹600",  bookings:"1.2k+", gradient:"from-red-500 to-rose-600",      tag:"PRO",      imageUrl:"https://images.unsplash.com/photo-1574359411659-15573a27fd0c?w=400&h=400&fit=crop&q=80" },
+  { id:"q5", _source:"quick", name:"Painter",     description:"Interior & exterior painting",     price:"₹700",  bookings:"2.1k+", gradient:"from-pink-500 to-rose-600",     imageUrl:"https://images.unsplash.com/photo-1562259929-b4e1fd3aef09?w=400&h=400&fit=crop&q=80" },
+  { id:"q6", _source:"quick", name:"AC Repair",   description:"AC service & installation",        price:"₹450",  bookings:"2.8k+", gradient:"from-cyan-500 to-blue-600",    tag:"HOT",      imageUrl:"https://images.unsplash.com/photo-1585771724684-38269d6639fd?w=400&h=400&fit=crop&q=80" },
 ];
 const DEFAULT_OUR = [
-  { id:1, name:"Plumber",     description:"Pipe repair, leakage fix, installation",  price:"₹400+", gradient:"from-blue-500 to-cyan-500",    imageUrl:"https://images.unsplash.com/photo-1542632867-261e4be41c7c?w=400&h=400&fit=crop&q=80" },
-  { id:2, name:"Electrician", description:"Wiring, switch repair, fan install",       price:"₹350+", gradient:"from-amber-500 to-orange-500",  imageUrl:"https://images.unsplash.com/photo-1621905251189-08b45d6a269e?w=400&h=400&fit=crop&q=80" },
-  { id:3, name:"Carpenter",   description:"Furniture repair, door fixing",            price:"₹500+", gradient:"from-yellow-500 to-amber-600",  imageUrl:"https://images.unsplash.com/photo-1504148455328-c376907d081c?w=400&h=400&fit=crop&q=80" },
-  { id:4, name:"Mason",       description:"Brickwork, plastering, tiling",            price:"₹600+", gradient:"from-red-500 to-rose-500",      imageUrl:"https://images.unsplash.com/photo-1574359411659-15573a27fd0c?w=400&h=400&fit=crop&q=80" },
-  { id:5, name:"Painter",     description:"Interior & exterior painting",             price:"₹700+", gradient:"from-pink-500 to-rose-500",     imageUrl:"https://images.unsplash.com/photo-1562259929-b4e1fd3aef09?w=400&h=400&fit=crop&q=80" },
-  { id:6, name:"General",     description:"Custom & general service requests",        price:"₹300+", gradient:"from-indigo-500 to-violet-500", imageUrl:"https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=400&h=400&fit=crop&q=80" },
+  { id:"o1", _source:"our", name:"Plumber",     description:"Pipe repair, leakage fix, installation",  price:"₹400+", gradient:"from-blue-500 to-cyan-500",    imageUrl:"https://images.unsplash.com/photo-1542632867-261e4be41c7c?w=400&h=400&fit=crop&q=80" },
+  { id:"o2", _source:"our", name:"Electrician", description:"Wiring, switch repair, fan install",       price:"₹350+", gradient:"from-amber-500 to-orange-500",  imageUrl:"https://images.unsplash.com/photo-1621905251189-08b45d6a269e?w=400&h=400&fit=crop&q=80" },
+  { id:"o3", _source:"our", name:"Carpenter",   description:"Furniture repair, door fixing",            price:"₹500+", gradient:"from-yellow-500 to-amber-600",  imageUrl:"https://images.unsplash.com/photo-1504148455328-c376907d081c?w=400&h=400&fit=crop&q=80" },
+  { id:"o4", _source:"our", name:"Mason",       description:"Brickwork, plastering, tiling",            price:"₹600+", gradient:"from-red-500 to-rose-500",      imageUrl:"https://images.unsplash.com/photo-1574359411659-15573a27fd0c?w=400&h=400&fit=crop&q=80" },
+  { id:"o5", _source:"our", name:"Painter",     description:"Interior & exterior painting",             price:"₹700+", gradient:"from-pink-500 to-rose-500",     imageUrl:"https://images.unsplash.com/photo-1562259929-b4e1fd3aef09?w=400&h=400&fit=crop&q=80" },
+  { id:"o6", _source:"our", name:"General",     description:"Custom & general service requests",        price:"₹300+", gradient:"from-indigo-500 to-violet-500", imageUrl:"https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=400&h=400&fit=crop&q=80" },
 ];
 
-/* ── Service card image with onError fallback only ─────────────────────────── */
+/* ── Safe image with onError fallback ──────────────────────────────────────── */
 const CARD_FALLBACKS = {
   plumber:     "https://images.unsplash.com/photo-1542632867-261e4be41c7c?w=400&h=400&fit=crop&q=80",
   electrician: "https://images.unsplash.com/photo-1621905251189-08b45d6a269e?w=400&h=400&fit=crop&q=80",
@@ -40,7 +40,6 @@ function cardFallback(name = "") {
   }
   return CARD_FALLBACKS.default;
 }
-/* Only falls back when the image actually fails — never blocks backend URLs */
 function SafeCardImg({ src, name }) {
   const [err, setErr] = useState(false);
   const normalized = normalizeImageUrl(src);
@@ -54,7 +53,7 @@ function SafeMktImg({ src, name }) {
   return <img src={normalized} alt={name} className="mkt-img w-full h-full object-cover" onError={() => setErr(true)} />;
 }
 
-/* ── Service Card — NO ratings ─────────────────────────────────────────────── */
+/* ── Service Card ───────────────────────────────────────────────────────────── */
 function ServiceCard({ service, onClick, showBookings, t }) {
   return (
     <div className="service-card" onClick={onClick}>
@@ -62,15 +61,11 @@ function ServiceCard({ service, onClick, showBookings, t }) {
         <SafeCardImg src={service.imageUrl} name={service.name} />
         <div className={`absolute inset-0 bg-gradient-to-br ${service.gradient || "from-indigo-500 to-blue-600"} opacity-40 mix-blend-multiply pointer-events-none`} />
         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/25 to-transparent pointer-events-none" />
-
-        {/* Tag only — NO star rating */}
         {service.tag && (
           <div className="absolute top-1.5 right-1.5 bg-white/90 px-1.5 py-0.5 rounded-full">
             <span className="text-[8px] font-extrabold text-green-700 leading-none tracking-wide">{service.tag}</span>
           </div>
         )}
-
-        {/* Price overlay at bottom */}
         <div className="absolute bottom-0 left-0 right-0 px-2 pb-1.5 pt-3 pointer-events-none">
           <p className="font-bold text-white text-[11px] leading-tight truncate drop-shadow">{service.name}</p>
           <div className="flex items-center justify-between mt-0.5">
@@ -81,8 +76,6 @@ function ServiceCard({ service, onClick, showBookings, t }) {
           </div>
         </div>
       </div>
-
-      {/* Footer */}
       <div style={{ padding: "6px 7px 7px", background: "#fff" }}>
         <p className="text-[9px] text-gray-400 line-clamp-1 leading-snug mb-1">{service.description}</p>
         <button className="service-card-book-btn">{t ? t("book") : "Book"}</button>
@@ -91,7 +84,7 @@ function ServiceCard({ service, onClick, showBookings, t }) {
   );
 }
 
-/* ── Grid Skeleton ─────────────────────────────────────────────────────────── */
+/* ── Grid Skeleton ──────────────────────────────────────────────────────────── */
 function GridSkeleton({ n = 6 }) {
   return (
     <div className="service-grid">
@@ -102,7 +95,7 @@ function GridSkeleton({ n = 6 }) {
   );
 }
 
-/* ── Section Header ────────────────────────────────────────────────────────── */
+/* ── Section Header ─────────────────────────────────────────────────────────── */
 function SectionHead({ title, subtitle, count, stripeColor = "#1a7a4a", countBg = "#e8f5ee", countColor = "#1a7a4a" }) {
   return (
     <div className="sec-head">
@@ -122,7 +115,7 @@ function SectionHead({ title, subtitle, count, stripeColor = "#1a7a4a", countBg 
   );
 }
 
-/* ── Banner Carousel ───────────────────────────────────────────────────────── */
+/* ── Banner Carousel ────────────────────────────────────────────────────────── */
 function BannerCarousel({ banners }) {
   const [idx, setIdx] = useState(0);
   const [fading, setFading] = useState(false);
@@ -185,7 +178,7 @@ function BannerCarousel({ banners }) {
   );
 }
 
-/* ── Marketplace Card ──────────────────────────────────────────────────────── */
+/* ── Marketplace Card ───────────────────────────────────────────────────────── */
 function MarketplaceCard({ service, t }) {
   return (
     <Link to={`/other-services/${service.id}`} style={{ display: "block", margin: "0 10px 8px" }}>
@@ -220,7 +213,7 @@ function MarketplaceCard({ service, t }) {
   );
 }
 
-/* ── Trust Badge (desktop) ─────────────────────────────────────────────────── */
+/* ── Trust Badge ────────────────────────────────────────────────────────────── */
 function TrustBadge({ icon, title, subtitle }) {
   return (
     <div className="flex flex-col items-center text-center p-3 bg-white rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
@@ -234,7 +227,7 @@ function TrustBadge({ icon, title, subtitle }) {
   );
 }
 
-/* ── PWA Install Hook ──────────────────────────────────────────────────────── */
+/* ── PWA Install Hook ───────────────────────────────────────────────────────── */
 function usePWAInstall() {
   const [deferredPrompt, setDeferredPrompt] = useState(null);
   const [nativeReady, setNativeReady] = useState(false);
@@ -266,7 +259,7 @@ function usePWAInstall() {
   return { nativeReady, isIOS, isInstalled, install };
 }
 
-/* ── iOS Instructions Modal ────────────────────────────────────────────────── */
+/* ── iOS Instructions Modal ─────────────────────────────────────────────────── */
 function IOSModal({ onClose }) {
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center p-4"
@@ -302,7 +295,6 @@ function IOSModal({ onClose }) {
   );
 }
 
-/* ── Play Store–style install badge ────────────────────────────────────────── */
 function PlayStoreBadge({ onClick, label = "Install App" }) {
   return (
     <button onClick={onClick}
@@ -322,14 +314,6 @@ function PlayStoreBadge({ onClick, label = "Install App" }) {
   );
 }
 
-/* ─────────────────────────────────────────────────────────────────────────────
-   PWA Install Banner — ALWAYS visible (unless already installed or dismissed)
-   Shows even before beforeinstallprompt fires, so user always sees the CTA.
-   Button behaviour:
-     • nativeReady  → trigger Chrome/Edge native install prompt
-     • isIOS        → show step-by-step iOS modal
-     • otherwise    → show a manual hint tooltip
-───────────────────────────────────────────────────────────────────────────── */
 function InstallBanner() {
   const { nativeReady, isIOS, isInstalled, install } = usePWAInstall();
   const [dismissed, setDismissed] = useState(() => localStorage.getItem("pwa_banner_v3") === "1");
@@ -346,19 +330,15 @@ function InstallBanner() {
   return (
     <>
       {showIOSModal && <IOSModal onClose={() => setShowIOSModal(false)} />}
-      {/* Slim one-liner banner ABOVE hero carousel */}
       <div className="flex items-center justify-between gap-2 px-3 py-2 mx-2.5 mb-1.5 rounded-xl shadow-sm"
            style={{ background: "linear-gradient(90deg,#16213e,#1a7a4a)" }}>
         <div className="flex items-center gap-2 min-w-0">
           <img src="/icon.jpeg" alt="VMDFix" className="w-7 h-7 rounded-lg flex-shrink-0 object-cover" />
-          <span className="text-white font-bold text-xs truncate">
-            Install VMDFix App — Free
-          </span>
+          <span className="text-white font-bold text-xs truncate">Install VMDFix App — Free</span>
           {nativeReady && <span className="text-green-300 text-[9px] font-bold flex-shrink-0">● Ready</span>}
         </div>
         <div className="flex items-center gap-1.5 flex-shrink-0">
-          <button
-            onClick={handleInstall}
+          <button onClick={handleInstall}
             className="bg-white text-[11px] font-extrabold px-3 py-1 rounded-lg active:scale-95 transition-all flex-shrink-0"
             style={{ color: "#1a7a4a" }}>
             {nativeReady ? "Install" : isIOS ? "Add" : "Install"}
@@ -372,26 +352,17 @@ function InstallBanner() {
   );
 }
 
-/* ─────────────────────────────────────────────────────────────────────────────
-   PWA Install CTA — bottom of page, ALWAYS visible (same logic as banner)
-───────────────────────────────────────────────────────────────────────────── */
 function InstallCTADesktop({ t }) {
   const { nativeReady, isIOS, isInstalled, install } = usePWAInstall();
   const [showIOSModal, setShowIOSModal] = useState(false);
   const [showHint, setShowHint]        = useState(false);
 
-  // Always visible unless already installed as PWA
   if (isInstalled) return null;
 
   const handleInstall = async () => {
-    if (nativeReady) {
-      await install();
-    } else if (isIOS) {
-      setShowIOSModal(true);
-    } else {
-      setShowHint(true);
-      setTimeout(() => setShowHint(false), 5000);
-    }
+    if (nativeReady) { await install(); }
+    else if (isIOS) { setShowIOSModal(true); }
+    else { setShowHint(true); setTimeout(() => setShowHint(false), 5000); }
   };
 
   return (
@@ -401,9 +372,7 @@ function InstallCTADesktop({ t }) {
         <div className="relative overflow-hidden rounded-2xl shadow-lg"
              style={{ background: "linear-gradient(135deg,#16213e 0%,#1a7a4a 100%)" }}>
           <div className="absolute -top-10 -right-10 w-40 h-40 rounded-full bg-white/5 pointer-events-none" />
-
           <div className="flex items-center justify-between gap-4 px-4 py-4">
-            {/* Left: icon + text */}
             <div className="flex items-center gap-3 min-w-0">
               <img src="/icon.jpeg" alt="VMDFix"
                 className="w-14 h-14 rounded-2xl shadow-lg object-cover border-2 border-white/20 flex-shrink-0" />
@@ -424,8 +393,6 @@ function InstallCTADesktop({ t }) {
                 </div>
               </div>
             </div>
-
-            {/* Right: install button only (no dismiss) */}
             <div className="flex flex-col items-end gap-2 flex-shrink-0">
               <PlayStoreBadge
                 onClick={handleInstall}
@@ -433,8 +400,6 @@ function InstallCTADesktop({ t }) {
               />
             </div>
           </div>
-
-          {/* Hint or ready message */}
           {(nativeReady || showHint) && (
             <div className="px-4 pb-3">
               <p className={`text-[10px] font-semibold ${nativeReady ? "text-green-300" : "text-yellow-300 animate-pulse"}`}>
@@ -450,7 +415,9 @@ function InstallCTADesktop({ t }) {
   );
 }
 
-
+/* ══════════════════════════════════════════════════════════════════════════════
+   MAIN HOME COMPONENT
+══════════════════════════════════════════════════════════════════════════════ */
 export default function Home() {
   const [quickServices, setQuickServices] = useState([]);
   const [ourServices, setOurServices]     = useState([]);
@@ -469,8 +436,19 @@ export default function Home() {
       api.get("/config/other-services"),
     ]).then(([b, q, os, o]) => {
       setBanners(b.status === "fulfilled" ? (b.value.data || []) : []);
-      setQuickServices(q.status === "fulfilled" ? (q.value.data || []) : []);
-      setOurServices(os.status === "fulfilled" ? (os.value.data || []) : []);
+
+      // *** KEY FIX: Tag every service with its source table ***
+      // This prevents ID collisions when both tables have services with the same numeric ID.
+      setQuickServices(
+        q.status === "fulfilled"
+          ? (q.value.data || []).map(s => ({ ...s, _source: "quick" }))
+          : []
+      );
+      setOurServices(
+        os.status === "fulfilled"
+          ? (os.value.data || []).map(s => ({ ...s, _source: "our" }))
+          : []
+      );
       setOtherServices(o.status === "fulfilled" ? (o.value.data || []) : []);
     }).finally(() => setLoading(false));
   }, []);
@@ -479,8 +457,15 @@ export default function Home() {
   const quick = (quickServices.length > 0 ? quickServices : DEFAULT_QUICK).filter(s => !q || s.name.toLowerCase().includes(q));
   const our   = (ourServices.length > 0 ? ourServices : DEFAULT_OUR).filter(s => !q || s.name.toLowerCase().includes(q));
 
-  /* Navigate to the correct service detail page — always use the real DB id */
-  const goService = (s) => navigate(`/service/${s.id}`);
+  /**
+   * Navigate using a compound ID: "quick-5" or "our-3"
+   * This ensures ServiceDetail.jsx knows EXACTLY which table to look in,
+   * preventing wrong service names even when IDs overlap between tables.
+   */
+  const goService = (s) => {
+    const source = s._source || "our";
+    navigate(`/service/${source}-${s.id}`);
+  };
 
   return (
     <div style={{ background: "#f5f5f5", minHeight: "100vh", paddingBottom: "80px" }}>
@@ -499,10 +484,10 @@ export default function Home() {
         </div>
       </div>
 
-      {/* ── PWA Install Banner (slim, above hero banners) ──────────────── */}
+      {/* ── PWA Install Banner ───────────────────────────────────────────── */}
       <InstallBanner />
 
-      {/* ── Banner ───────────────────────────────────────────────────────── */}
+      {/* ── Banner Carousel ──────────────────────────────────────────────── */}
       {!loading && banners.length > 0 && (
         <div style={{ marginBottom: "8px" }}>
           <BannerCarousel banners={banners} />
@@ -536,7 +521,7 @@ export default function Home() {
             : (
               <div className="service-grid stagger-children">
                 {quick.map(s => (
-                  <ServiceCard key={s.id} service={s} showBookings t={t} onClick={() => goService(s)} />
+                  <ServiceCard key={`quick-${s.id}`} service={s} showBookings t={t} onClick={() => goService(s)} />
                 ))}
               </div>
             )
@@ -562,7 +547,7 @@ export default function Home() {
             : (
               <div className="service-grid stagger-children">
                 {our.map(s => (
-                  <ServiceCard key={s.id} service={s} t={t} onClick={() => goService(s)} />
+                  <ServiceCard key={`our-${s.id}`} service={s} t={t} onClick={() => goService(s)} />
                 ))}
               </div>
             )
@@ -620,7 +605,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ── PWA Install CTA (desktop bottom) ────────────────────────────── */}
+      {/* ── PWA Install CTA (bottom) ─────────────────────────────────────── */}
       <InstallCTADesktop t={t} />
 
     </div>

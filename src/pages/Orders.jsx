@@ -16,6 +16,20 @@ const STATUS_MAP = {
 const STATUS_STEPS  = ["CREATED", "ASSIGNED", "IN_PROGRESS", "WORK_DONE", "CLOSED"];
 const STEP_LABELS   = ["Booking Created", "Worker Assigned", "Work Started", "Work Completed", "Payment Done"];
 
+/**
+ * Derive the best display title for an order.
+ * Priority: description (what user typed in booking form) → serviceName → fallback.
+ * We never show serviceName as a secondary badge because old records may have
+ * incorrect values (e.g. "Carpenter" stored for a "House clean" booking).
+ */
+function deriveOrderTitle(order) {
+  const desc = typeof order.description === "string" ? order.description.trim() : "";
+  const name = typeof order.serviceName === "string" ? order.serviceName.trim() : "";
+  if (desc && !desc.startsWith("Service #")) return desc;
+  if (name && !name.startsWith("Service #")) return name;
+  return "Service #" + (order.id || "");
+}
+
 function StatusTimeline({ status }) {
   const idx = STATUS_STEPS.indexOf(status);
   return (
@@ -49,7 +63,6 @@ function StatusTimeline({ status }) {
   );
 }
 
-/* Safe image with onError fallback — only falls back when image actually fails to load */
 function OrderServiceImg({ src, name }) {
   const [err, setErr] = useState(false);
   const normalized = normalizeImageUrl(src);
@@ -68,6 +81,24 @@ function OrderServiceImg({ src, name }) {
       onError={() => setErr(true)}
     />
   );
+}
+
+function formatDate(raw) {
+  try {
+    if (!raw) return "";
+    if (Array.isArray(raw)) {
+      const [y, m, d] = raw;
+      return new Date(y, m - 1, d).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
+    }
+    if (typeof raw === "string") {
+      return new Date(raw).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
+    }
+    if (typeof raw === "object" && raw.year) {
+      return new Date(raw.year, (raw.monthValue || 1) - 1, raw.dayOfMonth || 1)
+        .toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
+    }
+  } catch { /* ignore */ }
+  return "";
 }
 
 export default function Orders() {
@@ -103,25 +134,26 @@ export default function Orders() {
         <div className="space-y-4 stagger-children">
           {orders.map((order) => {
             const s = STATUS_MAP[order.status] || STATUS_MAP.CREATED;
-            const serviceName = (typeof order.serviceName === "string" ? order.serviceName : null) || ("Service #" + (order.id || ""));
+            const primaryTitle = deriveOrderTitle(order);
+            const dateStr = formatDate(order.createdAt);
+
             return (
               <div key={order.id} className="rounded-2xl border border-gray-100 bg-white shadow-sm overflow-hidden">
                 {/* Header */}
                 <div className="flex items-start gap-3 p-4 pb-3">
-                  <OrderServiceImg src={order.serviceImageUrl} name={serviceName} />
+                  <OrderServiceImg src={order.serviceImageUrl} name={primaryTitle} />
                   <div className="flex-1 min-w-0">
                     <div className="flex items-start justify-between gap-2">
-                      <div>
-                        <p className="font-bold text-gray-900 text-sm">{serviceName}</p>
+                      <div className="min-w-0 flex-1">
+                        {/* Primary title — what the user booked (description or service name) */}
+                        <p className="font-bold text-gray-900 text-sm leading-snug">{primaryTitle}</p>
+
                         <p className="text-xs text-gray-400 font-medium mt-0.5">#{order.id}</p>
                       </div>
                       <Badge tone={s.tone}>
                         <span className="flex items-center gap-1">{s.icon}{s.label}</span>
                       </Badge>
                     </div>
-                    {order.description && typeof order.description === "string" && (
-                      <p className="text-xs text-gray-500 mt-1 line-clamp-2">{order.description}</p>
-                    )}
                   </div>
                 </div>
 
@@ -133,28 +165,12 @@ export default function Orders() {
                       <p className="text-xs text-gray-500 line-clamp-1">{order.bookingAddress}</p>
                     </div>
                   )}
-                  {order.createdAt && (() => {
-                    // Backend may return LocalDateTime as array [y,m,d,h,min] or ISO string
-                    let dateStr = "";
-                    try {
-                      const raw = order.createdAt;
-                      if (Array.isArray(raw)) {
-                        const [y, m, d] = raw;
-                        dateStr = new Date(y, m - 1, d).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
-                      } else if (typeof raw === "string") {
-                        dateStr = new Date(raw).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
-                      } else if (raw && typeof raw === "object" && raw.year) {
-                        dateStr = new Date(raw.year, (raw.monthValue||1) - 1, raw.dayOfMonth||1)
-                          .toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
-                      }
-                    } catch(e) { dateStr = ""; }
-                    return dateStr ? (
-                      <div className="flex items-center gap-2">
-                        <Calendar size={12} className="text-gray-400 flex-shrink-0" />
-                        <p className="text-xs text-gray-500">{dateStr}</p>
-                      </div>
-                    ) : null;
-                  })()}
+                  {dateStr && (
+                    <div className="flex items-center gap-2">
+                      <Calendar size={12} className="text-gray-400 flex-shrink-0" />
+                      <p className="text-xs text-gray-500">{dateStr}</p>
+                    </div>
+                  )}
                   {order.workerId && (
                     <div className="flex items-center justify-between rounded-xl bg-indigo-50 border border-indigo-100 px-3 py-2 mt-2">
                       <div className="flex items-center gap-2">

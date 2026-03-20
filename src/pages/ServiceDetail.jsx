@@ -28,21 +28,32 @@ function SafeImage({ src, name, gradient }) {
   const [err, setErr] = useState(false);
   const fallback = getFallback(name);
   const imgSrc = (!src || err) ? fallback : src;
-
   return (
     <div className={`w-full aspect-[16/7] bg-gradient-to-br ${gradient || "from-indigo-500 to-blue-600"}`}>
-      <img
-        src={imgSrc}
-        alt={name}
-        className="w-full h-full object-cover"
-        onError={() => setErr(true)}
-      />
+      <img src={imgSrc} alt={name} className="w-full h-full object-cover" onError={() => setErr(true)} />
     </div>
   );
 }
 
+/**
+ * Parse the route :id param.
+ * Supports both legacy numeric IDs ("5") and compound source-prefixed IDs ("our-5", "quick-5").
+ * Returns { source: "our"|"quick"|null, numericId: number|null }
+ */
+function parseServiceId(rawId) {
+  if (!rawId) return { source: null, numericId: null };
+  if (rawId.startsWith("our-")) {
+    return { source: "our", numericId: Number(rawId.slice(4)) };
+  }
+  if (rawId.startsWith("quick-")) {
+    return { source: "quick", numericId: Number(rawId.slice(6)) };
+  }
+  // Legacy plain numeric ID — search both lists (old bookmarks / deep links)
+  return { source: null, numericId: Number(rawId) };
+}
+
 export default function ServiceDetail() {
-  const { id } = useParams();
+  const { id: rawId } = useParams();
   const navigate = useNavigate();
   const { t } = useTranslation();
 
@@ -56,34 +67,56 @@ export default function ServiceDetail() {
   const [uploadingFile, setUploadingFile] = useState(false);
   const [bookingError, setBookingError]   = useState("");
 
+  const { source, numericId } = parseServiceId(rawId);
+
   useEffect(() => {
     setLoading(true);
+    setService(null);
+
     Promise.allSettled([
       api.get("/config/our-services"),
       api.get("/config/quick-services"),
     ]).then(([ourRes, quickRes]) => {
-      const ourList   = ourRes.status   === "fulfilled" ? (ourRes.value.data   || []) : [];
-      const quickList = quickRes.status === "fulfilled" ? (quickRes.value.data || []) : [];
+      const ourList   = (ourRes.status   === "fulfilled" ? ourRes.value.data   : null) || [];
+      const quickList = (quickRes.status === "fulfilled" ? quickRes.value.data : null) || [];
 
-      const found =
-        ourList.find(s => !isNaN(Number(s.id)) && String(s.id) === String(id)) ||
-        quickList.find(s => !isNaN(Number(s.id)) && String(s.id) === String(id));
+      let found = null;
 
-      setService(found || null);
+      if (source === "our") {
+        // Explicit source — look only in our-services
+        found = ourList.find(s => String(s.id) === String(numericId)) || null;
+      } else if (source === "quick") {
+        // Explicit source — look only in quick-services
+        found = quickList.find(s => String(s.id) === String(numericId)) || null;
+      } else {
+        // Legacy: no source prefix — search both but prefer our-services
+        // (this path only hit by old links; new links always have the source prefix)
+        const idStr = String(numericId || rawId);
+        found =
+          ourList.find(s => String(s.id) === idStr) ||
+          quickList.find(s => String(s.id) === idStr) ||
+          null;
+      }
+
+      if (found) {
+        // Attach the source so we can pass it to the booking payload
+        found = { ...found, _source: source || (ourList.find(s => String(s.id) === String(found.id)) ? "our" : "quick") };
+      }
+
+      setService(found);
     }).finally(() => setLoading(false));
-  }, [id]);
+  }, [rawId]);
 
   const handleFileUpload = async (file) => {
     if (!file) return;
-    if (file.size > 20 * 1024 * 1024) return alert(t("file_too_large"));
-
+    if (file.size > 20 * 1024 * 1024) return alert("File is too large (max 20MB)");
     setUploadingFile(true);
     try {
       const url = await uploadFile(file);
       setAttachmentUrl(url);
       setAttachName(file.name);
     } catch {
-      alert(t("upload_failed"));
+      alert("Upload failed. Please try again.");
     } finally {
       setUploadingFile(false);
     }
@@ -92,61 +125,38 @@ export default function ServiceDetail() {
   const handleBook = async () => {
     const user = JSON.parse(localStorage.getItem("user") || "null");
     if (!user) return navigate("/login");
-
     if (!user.mobile) {
-      setBookingError(t("mobile_required"));
+      setBookingError("Mobile number is required for booking. Please update your profile.");
       return;
     }
 
     setSubmitting(true);
     setBookingError("");
 
-    const numericId = service && !isNaN(Number(service.id)) ? Number(service.id) : null;
-    const desc = description.trim() || service?.name || `${t("service")} #${id}`;
-
-    const corePayload = {
+    // Always send the exact name/image the user saw — never let backend guess
+    const payload = {
       serviceId:        numericId,
-      description:      desc,
+      serviceName:      service.name,        // ← authoritative: what user saw
+      serviceImageUrl:  service.imageUrl || null,
+      serviceType:      service._source || source || "our",  // ← tells backend which table
+      description:      description.trim() || service.name,
       customerPhone:    user.mobile,
       assistedByUserId: user.id,
       attachmentUrl:    attachmentUrl || null,
     };
 
-    const fullPayload = {
-      ...corePayload,
-      serviceName:     service?.name || desc,
-      serviceImageUrl: service?.imageUrl || null,
-    };
-
-    const tryPost = async (payload) => {
-      const res = await api.post("/cases", payload);
-      return res.data?.data || res.data;
-    };
-
     try {
-      try {
-        await tryPost(fullPayload);
-      } catch (firstErr) {
-        const s = firstErr.response?.status;
-        if (s === 400 || s === 500) {
-          await tryPost(corePayload);
-        } else {
-          throw firstErr;
-        }
-      }
+      await api.post("/cases", payload);
       setBooked(true);
       setTimeout(() => navigate("/profile/orders"), 1500);
     } catch (err) {
       const serverMsg = err.response?.data?.message
         || (typeof err.response?.data === "string" ? err.response.data : null);
-
       const status = err.response?.status;
-
-      let friendly = t("booking_failed");
-      if (status === 400) friendly = t("booking_rejected");
-      if (status === 500) friendly = t("server_error");
+      let friendly = "Booking failed. Please try again.";
+      if (status === 400) friendly = "Invalid booking details. Please check and retry.";
+      if (status === 500) friendly = "Server error. Please try again in a moment.";
       if (serverMsg) friendly = serverMsg;
-
       setBookingError(friendly);
     } finally {
       setSubmitting(false);
@@ -180,7 +190,7 @@ export default function ServiceDetail() {
       <Card className="text-center py-12">
         <p className="text-3xl mb-3">🔍</p>
         <h2 className="text-base font-bold text-gray-900">{t("service_not_found")}</h2>
-        <p className="text-sm text-gray-400 mt-1 mb-4">{t("service_not_found_desc")}</p>
+        <p className="text-sm text-gray-400 mt-1 mb-4">The service could not be found. It may have been removed.</p>
         <PrimaryButton onClick={() => navigate("/")}>{t("back_to_home")}</PrimaryButton>
       </Card>
     </PageContainer>
@@ -188,6 +198,7 @@ export default function ServiceDetail() {
 
   return (
     <PageContainer>
+      {/* Hero image */}
       <div className="relative rounded-2xl overflow-hidden">
         <SafeImage src={service.imageUrl} name={service.name} gradient={service.gradient} />
         <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
@@ -202,6 +213,7 @@ export default function ServiceDetail() {
         </div>
       </div>
 
+      {/* Trust badges */}
       <div className="flex gap-2 flex-wrap">
         <div className="flex items-center gap-1.5 rounded-full bg-white border border-gray-100 px-3 py-1.5 shadow-sm">
           <Clock size={12} className="text-indigo-500" />
@@ -213,28 +225,30 @@ export default function ServiceDetail() {
         </div>
       </div>
 
+      {/* Booking summary */}
       <div className="rounded-2xl border border-indigo-100 bg-indigo-50 p-4">
-        <p className="text-xs font-bold text-indigo-800 mb-2">{t("booking_summary")}</p>
+        <p className="text-xs font-bold text-indigo-800 mb-2">Booking Summary</p>
         <div className="space-y-1.5">
           <div className="flex items-center justify-between">
-            <span className="text-xs text-indigo-600">{t("service")}</span>
+            <span className="text-xs text-indigo-600">Service</span>
             <span className="text-xs font-bold text-indigo-900">{service.name}</span>
           </div>
           {service.price && (
             <div className="flex items-center justify-between">
-              <span className="text-xs text-indigo-600">{t("starting_price")}</span>
+              <span className="text-xs text-indigo-600">Starting Price</span>
               <span className="text-xs font-bold text-indigo-900">{service.price}</span>
             </div>
           )}
           {service.description && (
             <div className="flex items-start justify-between gap-2">
-              <span className="text-xs text-indigo-600 flex-shrink-0">{t("description")}</span>
+              <span className="text-xs text-indigo-600 flex-shrink-0">Description</span>
               <span className="text-xs text-indigo-900 text-right line-clamp-2">{service.description}</span>
             </div>
           )}
         </div>
       </div>
 
+      {/* Booking form */}
       <Card>
         <h2 className="text-sm font-bold text-gray-900 mb-4">{t("book_service")} — {service.name}</h2>
 
@@ -251,27 +265,21 @@ export default function ServiceDetail() {
             <span className="mb-1.5 block text-xs font-semibold text-gray-600 uppercase tracking-wide">
               {t("attachment_optional")}
             </span>
-
             <div className={`rounded-xl border-2 border-dashed p-4 text-center transition-colors
               ${attachmentUrl ? "border-emerald-200 bg-emerald-50" : "border-gray-200 hover:border-indigo-200"}`}>
-
               {attachmentUrl ? (
                 <div className="flex items-center justify-center gap-2 text-emerald-600">
                   <CheckCircle size={16} />
-                  <span className="text-sm font-semibold truncate max-w-[180px]">
-                    {attachName || t("attachment_selected")}
-                  </span>
+                  <span className="text-sm font-semibold truncate max-w-[180px]">{attachName || "Attached"}</span>
                   <button
                     onClick={() => { setAttachmentUrl(""); setAttachName(""); }}
                     className="text-xs text-gray-400 hover:text-red-500 underline flex-shrink-0"
                   >
-                    {t("remove")}
+                    Remove
                   </button>
                 </div>
               ) : uploadingFile ? (
-                <div className="text-sm text-indigo-500 font-semibold animate-pulse">
-                  {t("uploading")}
-                </div>
+                <div className="text-sm text-indigo-500 font-semibold animate-pulse">Uploading...</div>
               ) : (
                 <label className="cursor-pointer block">
                   <Paperclip size={20} className="mx-auto text-gray-300 mb-1.5" />

@@ -23,6 +23,11 @@ import OtherServiceDetail from "./pages/OtherServiceDetail";
 import AdminOurServicesPage from "./pages/admin/AdminOurServicesPage";
 import AdminNotificationsPage from "./pages/admin/AdminNotificationsPage";
 
+import { useEffect } from "react";
+
+// ✅ NEW IMPORT (correct one)
+import { onForegroundMessage } from "./utils/fcm";
+
 function NotFound() {
   return (
     <div style={{ minHeight: "60vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 12, padding: 24 }}>
@@ -37,6 +42,31 @@ function NotFound() {
 }
 
 function App() {
+
+  // ✅ NEW LISTENER (replaces old one)
+  useEffect(() => {
+  let unsubscribeFn = null;
+
+  onForegroundMessage((payload) => {
+    console.log("📩 Foreground message:", payload);
+
+    const title = payload.data?.title || payload.notification?.title;
+    const body = payload.data?.body || payload.notification?.body;
+
+    if (Notification.permission === "granted") {
+      new Notification(title, { body });
+    }
+  }).then((unsubscribe) => {
+    unsubscribeFn = unsubscribe;
+  });
+
+  return () => {
+    if (typeof unsubscribeFn === "function") {
+      unsubscribeFn();
+    }
+  };
+}, []);
+
   return (
     <BrowserRouter>
       <Layout>
